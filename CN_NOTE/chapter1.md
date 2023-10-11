@@ -170,5 +170,12 @@ PDU(Protocol Data Unit)协议数据单元
 ## 前世今生
 ARPANET 最早的雏形，老祖宗
 
+## 度量单位
+厂家的度量和我们认为的度量硬盘容量不同
+$10^3$和$2^{10}$
+
+## hw
+1 3 5 6 10 16 17 31
+
 ## distributed MST
 [csdn](https://blog.csdn.net/m0_52739647/article/details/129717416)
