@@ -29,7 +29,7 @@ $g(t) = \frac{1}{2}c + \sum^{\infin}_{n=1}a_nsin(2\pi nft) + \sum^{\infin}_{n=1}
 无噪声情况
 任意一个信号通过了一个带宽为B的低通滤波器，只要进行每秒2B次的确切采样，就可以完全重构出被过滤的信号
 如果信号包含了V个离散等级
-最大数据速率 = 2B $log_2V$ (BIt/sec)
+最大数据速率 = 2B $log_2V$ (Bit/sec)
 #### Shannon's formula for capacity of a noisy channel
 带宽为B Hz，信噪比是S/N的有噪声信道，S为信号功率，N为噪声功率
 最大比特率 = B $log_2(1 + \frac{S}{N})$
