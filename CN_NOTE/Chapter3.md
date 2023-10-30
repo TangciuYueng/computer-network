@@ -1,3 +1,4 @@
+[TOC]
 # 数据链路层(Data Link Layer)
 ## 设计问题
 数据链路层使用物理层提供的服务在通信信道上发送和接收比特，它要完成功能包括
@@ -129,37 +130,143 @@ CRC 是数据流采用二进制除法（没有进位，使用 xor 来代替减�
 - 假设主机不会崩溃。
 ### 单工协议
 #### 乌托邦式单工协议
-- **不考虑任何出错情况**。
+- **不考虑任何出错情况(没噪声，$S/N \rightarrow \infin $)**。
 - 数据只能单向传输。
 - 接收方缓冲区无限大。
+- 不管流量控制(不管收没收到、能否处理那么多/少)。
+- 接收方处理数据时间无限快。
+- 接收方和发送方的网络层总是处于准备就绪状态
 
 协议由两个单独的过程组成：运行在源主机上的发送过程，运行在目的主机上的接受过程。
-发送过程是一个无限的while循环，尽可能快地把数据放在线路上。
+发送过程是一个**无限的while循环**，尽可能快地把数据放在线路上，不管对方收没收到，处理没有。
 接收过程是在等待唯一可能的事件，即到达了一个未损坏的帧发生。
 整个处理过程接近于无确认的无连接服务，差错控制和流量控制就要依赖上层解决了。（当然，即使无确认的无连接服务也要做一些差错检测的工作。）
+
+```c
+// only one event type
+typedef enum {frame_arrival} event_type;
+#include "protocol.h"
+void sender1(void) {
+  frame s;
+  packet buffer;
+  while (true) {
+    from_network_layer(&buffer);
+    s.info = buffer;
+    to_physical_layer(&s);
+  }
+}
+
+void receiver1(void) {
+  frame s;
+  event_type event;
+  while (true) {
+    wait_for_event(&event);
+    from_physical_layer(&r);
+    to_network_layer(&r.info);
+  }
+}
+```
 #### 无错信道上的单工停-等协议
 - 不考虑通信信道出错。
 - 数据只能从发送方传到接收方，但帧可以在两个方向上传送(交替成为发送方和接收方)。
 - 考虑了接收方接收速率和发送方发送速率不匹配的问题，即进行***流量控制***。
 
 此问题的一种解决方案显然是建立足够强大的接收器，但这对硬件要求极高，且只是把发送方太快这个问题转移到了网络层考虑。
-更一般的解决方案是：接收方从帧中取出数据包并传递给网络层后，给发送方返回一个哑帧，允许其发送下一帧。这种**双向传送是交替关系**，可使用**半双工**的物理信道。
+更一般的解决方案是：接收方从帧中取出数据包并传递给网络层后，给发送方返回一个**哑帧，允许其发送下一帧(反馈信息)**。这种**双向传送是交替关系**，可使用**半双工**的物理信道。
 
+```c
+// only one event type
+typedef enum {frame_arrival} event_type;
+#include "protocol.h"
+void sender2(void) {
+  frame s;
+  packet buffer;
+  event_type event;
+  while (true) {
+    from_network_layer(&buffer);
+    s.info = buffer;
+    to_physical_layer(&s);
+    wait_for_event(&event);       // sleep until given the dummy frame
+  }
+}
+void receiver2(void) {
+  frame r, s;
+  event_type event;
+  while (true) {
+    wait_for_event(&event);
+    from_physical_layer(&r);
+    to_network_layer(&r.info);
+    to_physical_layer(&s);      // send a dummy frame to awaken sender
+  }
+}
+```
 #### 有错信道上的单工停-等协议
 - **考虑通信信道出错**，若一帧在传输过程中被损坏，接收方可以检测出来，即进行差错控制。
 - 数据只能从发送方传到接收方，但帧可以在两个方向上传送。
-- 考虑了**接收速率和发送速率不匹配**的问题。
+- 考虑了**接收速率和发送速率不匹配(流量控制)**的问题。
 
-如果只是简单的在发送方设置定时器，超时重传，那么当确认帧丢失时，就会造成帧重复，因此要让发送方在每个帧的头部加入序号，接收方检查序号判断是否为重复帧。
+如果只是简单的在发送方设置定时器，超时重传，**那么当确认帧丢失时，就会造成帧重复，也可能导致发送方阻塞**，因此要让发送方在每个帧的头部加入序号，接收方检查序号判断是否为重复帧。
 当m号帧发出，代表m-1号帧必定已经被确认，则此时的问题就与m-1号帧完全无关了，因此，序号关系可仅限于后两者，即m和m+1之间，换言之，只需要,一位序号就足够了，即0和1。
 发送方发出一帧后启动计时器，若
 
 1. 收到完好确认帧：从网络层获取下一个数据包放入缓冲区覆盖之前的。
-2. 收到受损确认帧或计时器超时：不改变缓冲区内容和序号，重传上一帧。
+2. 收到**受损确认帧或计时器超时**：**不改变缓冲区内容和序号，重传上一帧**。
 
 接收方收到有效帧后，检查其序号，若
 
 1. 不是重复帧，去封装传递给网络层。
-2. 为重复帧，重新向发送方发送这一帧的确认
+2. 为重复帧，**重新向发送方发送这一帧的确认**
+
+这样的协议成为**自动重复请求(ARQ, Automatic Reqeat reQuest)** or **带有重传的肯定确认(PAR, Positive Acknowledge with Retrasmission)**
+
+```c
+// THREE types !
+typedef enum {frame_arrival, cksum_err, timeout} event_type;
+
+#include "protocol.h"
+
+void sender3(void) {
+  seq_nr next_frame_to_send;
+  frame s;
+  packet buffer;
+  event_type event;
+  next_frame_to_send = 0;
+  
+  from_network_layer(&buffer);
+  while (true) {
+    s.info = buffer;
+    s.seq = next_frame_to_send;
+    to_physical_layer(&s);
+    start_timer(s.seq);
+    wait_for_event(&event);               // sleep until the event is given
+    if (event == frame_arrival) {         // if not the "frame_arrival", just send again
+      from_physical_layer(&s);            // check the dummy frame
+      if (s.ack == next_frame_to_send) {  // good dummy frame
+        stop_timer(s.ack);
+        from_network_layer(&buffer);
+        inc(next_frame_to_send);
+      }
+    }
+  }
+}
+
+void receiver3(void) {
+  seq_nr frame_expected;
+  frame r, s;
+  event_tpye event;
+  frame_expected = 0;
+  while (true) {
+    wait_for_event(&event);
+    if (event == frame_arrival) {
+      if (r.seq == frame_expected) {
+        to_network_layer(&r.info);
+        inc(frame_expected);
+      }
+      s.ack = 1 - frame_expected;
+      to_physical_layer(&s);
+    }
+  }
+}
+```
 
 #### 滑动窗口协议(全双工)
