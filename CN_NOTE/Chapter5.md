@@ -332,3 +332,22 @@ congestion control
 随机早期检测（Random Early Detection，RED）是一种用于处理拥塞的算法。它通过维护运行队列长度的平均值来判断是否丢弃数据包。当**平均队列长度超过阈值时，路由器会随机丢弃一小部分数据包**，以提醒快速发送方可能发生拥塞，从而减缓其发送速度。RED算法能够提高网络性能，但需要调整参数和与其他拥塞控制机制配合使用。
 
 ## 服务质量
+Quality of Service(QoS)
+
+### Application Requirements
+Delay 延迟，均值
+Jitter 抖动，方差，数据一会来得快一会慢，看视频一会跳帧一会卡帧
+
+### 分类举例
+- Constant bit rate固定的
+  - Telephony
+- Real-time variable bit rate实时变化的
+  - Compressed videoconferencing
+- Non-real-time variable bit rate非实时变化
+  - Watching a movie on demand
+- Available bit rate有就用
+  - File transfer
+
+
+**要考**IPv4格式、MAC长度
+不用全零全一
