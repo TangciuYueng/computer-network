@@ -70,6 +70,7 @@ host1 --> host2: CR(seq=x)连接请求
 host1 <-- host2: ACK(seq=y,ACK=x)响应
 host1 --> host2: DATA(seq=x,ACK=y)再确认
 
+正是由于网络层IP的不可靠性
 但是如果没有第三次握手
 - host2不知道host1收没收到，不确定
 - host1知道host2没收到，所以也不确定
@@ -98,26 +99,71 @@ host1 --> host2: REJECT(ACK=y)发送拒绝
 接收方明确地告诉发送方已经确认了多少个报文，还有多少个缓冲区
 
 **要考**流量控制：点到点的；拥塞控制：区域的（课本上的观点）
+调整**发送方**的速率
 
 ### Multiplexing
+多个应用程序复用同一个传输层
 
 ### Crash recovery
+差错控制采用一些不同的策略，但没有一行能够真正的OK，所有都恢复是不可能的，剩下的就交给上一层来处理
+- always retransmit
+- never retransmit
+- retransmit in S0
+- retransmit in S1
 
 ## Congestion Control
+拥塞控制
+
+超过了临界点，网络中流量的输出就下降了
 
 ### Desirable bandwidth allocation
+最大最小带宽分配？
 
 ### Regulation the sending rate
+根据接收方的反馈调整
+- 接收方比较小，发送方就发少一点
+- 接收方比较大，但是网络原因发送方发得比较慢
+
+假设一个主机性能非常优秀，但是也不能保证发送给它的就能很快处理，因此我们时时刻刻就要调整
+
+例如AIMD的control law，我们Additive Increase Multicative Decrease，慢慢减少，一次减少一半
 
 ## The Internet Transport Protocols: UDP
 
 ### Introduction to UDP
+**要考**伪头部只是发送端、接收端检验用的，不会出现在传输过程中
 
 ### Remote Procedure Call
 
 ### Real-Time Transport
+RTP然而**并不是传输层**的东西，通过类似socket的接口和UDP完成
+![](./ref/note6-2.png)
+
+UDP一会快一会慢(延迟和抖动)，因此需要一个缓冲区，我们均匀地取出来
 
 ## The Internet Transport Protocols: TCP
 
+### The TCP Service Model
+- 20, 21: FTP: file transfer
+- 22: SSH: Remote login, replacement for Telnet
+- 25: SMTP: Email
+- 80: HTTP: World Wide Web
+- ...
+上面都是应用层的
+
+TCP中默认的粘包功能，如果发一个字节就发一次(20B + 20B，效率太低)，数据少就让别的捎带，但又存在别的问题
+
+MSS最大字节，超过了再发送，保证效率；RTT保证时效
+
+### The TCP Segment Header
+Sequence number 依赖本地时钟产生随机数来生成序列号，非常复杂
+
+比较充分和完备，现在甚至还有用不上的保留字段
+
 ## Delay Tolerant Networking
+
+## 拥塞控制
+先指数增长，然后线性增长，然后减半...
+
+**要考**什么鬼窗口
 
